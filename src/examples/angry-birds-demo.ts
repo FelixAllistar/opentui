@@ -52,6 +52,9 @@ interface GameState {
   dragOffset: THREE.Vector2
   launchDirection: THREE.Vector2
 
+  // Scenery
+  movingClouds: { mesh: THREE.Group; velocity: THREE.Vector3 }[]
+
   // Resources
   birdResource: any
   boxResource: any
@@ -206,21 +209,51 @@ async function createScenery(state: GameState): Promise<void> {
   const { scene } = state;
 
   // Create Clouds
-  const cloudMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
-  for (let i = 0; i < 6; i++) {
-    const cloud = new THREE.Group();
-    const mainBlob = new THREE.Mesh(new THREE.SphereGeometry(1.5 + Math.random() * 0.5, 8, 6), cloudMaterial);
-    const blob2 = new THREE.Mesh(new THREE.SphereGeometry(1 + Math.random() * 0.5, 8, 6), cloudMaterial);
-    blob2.position.set(1.2, -0.5, Math.random() * 0.2);
-    const blob3 = new THREE.Mesh(new THREE.SphereGeometry(0.8 + Math.random() * 0.5, 8, 6), cloudMaterial);
-    blob3.position.set(-1.3, -0.3, Math.random() * 0.2);
-    cloud.add(mainBlob, blob2, blob3);
+  const cloudMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+  const numClouds = 8; // Total number of clouds
 
-    const x = (Math.random() - 0.5) * 28;
-    const y = Math.random() * 4 + 5; // Position them in the upper part of the screen
-    cloud.position.set(x, y, -6); // Place them far in the background
-    scene.add(cloud);
+  for (let i = 0; i < numClouds; i++) {
+    const cloudGroup = new THREE.Group();
+    const numBlobs = 3 + Math.floor(Math.random() * 3); // Each cloud has 3-5 blobs
+
+    for (let j = 0; j < numBlobs; j++) {
+      const blobSize = 0.8 + Math.random() * 0.8;
+      const blobGeometry = new THREE.SphereGeometry(blobSize, 8, 6);
+      const blob = new THREE.Mesh(blobGeometry, cloudMaterial);
+      
+      // Make them look less like perfect spheres
+      blob.scale.set(1.5, 1.0, 1.0); 
+
+      if (j > 0) {
+        // Position subsequent blobs relative to the first one
+        blob.position.set(
+          (Math.random() - 0.5) * 3, 
+          (Math.random() - 0.5) * 1.5, 
+          (Math.random() - 0.5) * 0.5
+        );
+      }
+      cloudGroup.add(blob);
+    }
+
+    const z = -5 - Math.random() * 5; // Range from -5 (near) to -10 (far)
+    const y = Math.random() * 4 + 4;
+    const x = (Math.random() - 0.5) * 35; // Start at a random horizontal position
+    cloudGroup.position.set(x, y, z);
+
+    // Scale the cloud based on its depth for a parallax effect
+    const scale = 0.5 + (z - (-10)) / 5 * 0.8; // Scale from 0.5 to 1.3
+    cloudGroup.scale.set(scale, scale, scale);
+
+    scene.add(cloudGroup);
+
+    // Speed is also based on depth - closer clouds move faster
+    const speed = (0.001 + Math.random() * 0.002) * (scale * 1.2);
+    state.movingClouds.push({
+      mesh: cloudGroup,
+      velocity: new THREE.Vector3(speed, 0, 0),
+    });
   }
+
 
   // Create Trees
   const trunkMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 }); // SaddleBrown
@@ -230,18 +263,18 @@ async function createScenery(state: GameState): Promise<void> {
     const tree = new THREE.Group();
     const trunkHeight = 1.5 + Math.random() * 0.5;
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, trunkHeight, 8), trunkMaterial);
-    
+
     const leavesHeight = 2.5 + Math.random();
     const leaves = new THREE.Mesh(new THREE.ConeGeometry(1.2, leavesHeight, 8), leavesMaterial);
     leaves.position.y = trunkHeight / 2 + leavesHeight / 2.5; // Position leaves on top of the trunk
-    
+
     tree.add(trunk, leaves);
 
     // Position trees on the ground level, to the sides
     const side = i < 2 ? -1 : 1;
     const x = side * (10 + Math.random() * 4);
     const y = -8 + trunkHeight / 2; // Place base of the trunk on the ground
-    tree.position.set(x, y, -3); 
+    tree.position.set(x, y, -3);
     tree.scale.set(0.7, 0.7, 0.7);
     scene.add(tree);
   }
@@ -443,6 +476,7 @@ export async function run(renderer: CliRenderer): Promise<void> {
     bird: null, birdStartPosition: new THREE.Vector3(-8, -3, 0),
     isDragging: false, dragOffset: new THREE.Vector2(),
     launchDirection: new THREE.Vector2(),
+    movingClouds: [],
     birdResource, boxResource, birdDef, boxDef,
     parentContainer, titleText, instructionsText, statusText, debugText,
     frameCallback: async () => { }, keyHandler: () => { },
@@ -530,7 +564,29 @@ export async function run(renderer: CliRenderer): Promise<void> {
 
   // Frame callback
   state.frameCallback = async (deltaTime: number) => {
-    updatePhysics(state, deltaTime)
+    // Move clouds
+    const worldWidth = state.camera.right - state.camera.left;
+    for (const cloud of state.movingClouds) {
+      cloud.mesh.position.x += cloud.velocity.x * deltaTime;
+
+      // When a cloud goes off-screen, reset its properties for variety
+      if (cloud.mesh.position.x > worldWidth / 2 + 5) { 
+        cloud.mesh.position.x = -worldWidth / 2 - 5;
+
+        // Respawn with new random properties
+        const z = -5 - Math.random() * 5;
+        cloud.mesh.position.y = Math.random() * 4 + 4;
+        cloud.mesh.position.z = z;
+
+        const scale = 0.5 + (z - (-10)) / 5 * 0.8;
+        cloud.mesh.scale.set(scale, scale, scale);
+
+        const speed = (0.001 + Math.random() * 0.002) * (scale * 1.2);
+        cloud.velocity.x = speed;
+      }
+    }
+
+    updatePhysics(state, deltaTime);
     state.spriteAnimator.update(deltaTime)
     await state.engine.drawScene(state.scene, frameBuffer, deltaTime)
 
