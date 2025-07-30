@@ -35,6 +35,7 @@ import * as layoutExample from "./simple-layout-example"
 import * as inputSelectLayoutExample from "./input-select-layout-demo"
 import * as styledTextExample from "./styled-text-demo"
 import * as mouseInteractionExample from "./mouse-interaction-demo"
+import * as angryBirdsExample from "./angry-birds-demo"
 import { getKeyHandler } from "../ui/lib/KeyHandler"
 
 interface Example {
@@ -45,6 +46,12 @@ interface Example {
 }
 
 const examples: Example[] = [
+  {
+    name: "Angry Birds Clone",
+    description: "2D physics game - Drag bird to aim and launch at box towers",
+    run: angryBirdsExample.run,
+    destroy: angryBirdsExample.destroy,
+  },
   {
     name: "Mouse Interaction Demo",
     description: "Interactive mouse trails and clickable cells demonstration",
