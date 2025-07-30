@@ -202,6 +202,51 @@ function launchBird(state: GameState): void {
   state.statusText.content = "Bird launched! Press [N] for new bird"
 }
 
+async function createScenery(state: GameState): Promise<void> {
+  const { scene } = state;
+
+  // Create Clouds
+  const cloudMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+  for (let i = 0; i < 6; i++) {
+    const cloud = new THREE.Group();
+    const mainBlob = new THREE.Mesh(new THREE.SphereGeometry(1.5 + Math.random() * 0.5, 8, 6), cloudMaterial);
+    const blob2 = new THREE.Mesh(new THREE.SphereGeometry(1 + Math.random() * 0.5, 8, 6), cloudMaterial);
+    blob2.position.set(1.2, -0.5, Math.random() * 0.2);
+    const blob3 = new THREE.Mesh(new THREE.SphereGeometry(0.8 + Math.random() * 0.5, 8, 6), cloudMaterial);
+    blob3.position.set(-1.3, -0.3, Math.random() * 0.2);
+    cloud.add(mainBlob, blob2, blob3);
+
+    const x = (Math.random() - 0.5) * 28;
+    const y = Math.random() * 4 + 5; // Position them in the upper part of the screen
+    cloud.position.set(x, y, -6); // Place them far in the background
+    scene.add(cloud);
+  }
+
+  // Create Trees
+  const trunkMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 }); // SaddleBrown
+  const leavesMaterial = new THREE.MeshPhongMaterial({ color: 0x2E8B57 }); // SeaGreen
+
+  for (let i = 0; i < 5; i++) {
+    const tree = new THREE.Group();
+    const trunkHeight = 1.5 + Math.random() * 0.5;
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, trunkHeight, 8), trunkMaterial);
+    
+    const leavesHeight = 2.5 + Math.random();
+    const leaves = new THREE.Mesh(new THREE.ConeGeometry(1.2, leavesHeight, 8), leavesMaterial);
+    leaves.position.y = trunkHeight / 2 + leavesHeight / 2.5; // Position leaves on top of the trunk
+    
+    tree.add(trunk, leaves);
+
+    // Position trees on the ground level, to the sides
+    const side = i < 2 ? -1 : 1;
+    const x = side * (10 + Math.random() * 4);
+    const y = -8 + trunkHeight / 2; // Place base of the trunk on the ground
+    tree.position.set(x, y, -3); 
+    tree.scale.set(0.7, 0.7, 0.7);
+    scene.add(tree);
+  }
+}
+
 async function resetLevel(state: GameState): Promise<void> {
   // Remove all objects
   for (const obj of state.objects) {
@@ -284,7 +329,7 @@ export async function run(renderer: CliRenderer): Promise<void> {
     width: initialTermWidth,
     height: initialTermHeight,
     focalLength: 1,
-    backgroundColor: RGBA.fromValues(0.1, 0.1, 0.2, 1.0) // Dark blue background instead of black
+    backgroundColor: RGBA.fromValues(0.53, 0.81, 0.98, 1.0) // Light blue sky
   })
 
   await engine.init()
@@ -539,7 +584,8 @@ export async function run(renderer: CliRenderer): Promise<void> {
   parentContainer.add(mouseCapture)
 
   // Create initial level and bird
-  await createLevel(state)
+  await createScenery(state);
+  await createLevel(state);
   await resetBird(state)
 
   gameState = state
