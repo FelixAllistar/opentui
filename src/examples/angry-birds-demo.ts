@@ -21,7 +21,7 @@ import birdPath from "./assets/heart.png" with { type: "image/png" }
 
 const WORLD_HEIGHT = 20.0
 const GRAVITY = { x: 0.0, y: -9.81 }
-const LAUNCH_POWER_MULTIPLIER = 24.0
+const LAUNCH_POWER_MULTIPLIER = 8.0
 const MAX_LAUNCH_DISTANCE = 4.0
 
 interface PhysicsObject {
@@ -101,7 +101,7 @@ async function createPhysicsObject(
   const rigidBody = state.physicsWorld.createRigidBody(rigidBodyDesc)
 
   const colliderDesc = type === 'bird'
-    ? RAPIER.ColliderDesc.ball(Math.min(width, height) * 0.4)
+    ? RAPIER.ColliderDesc.ball(Math.min(width, height) * 0.4).setDensity(3.0)
     : RAPIER.ColliderDesc.cuboid(width * 0.4, height * 0.4)
 
   colliderDesc.setRestitution(0.3).setFriction(0.8)
@@ -348,26 +348,13 @@ export async function run(renderer: CliRenderer): Promise<void> {
     scale: 1.0
   }
 
-  // Setup lighting (brighter for visibility)
-  const ambientLight = new THREE.AmbientLight(0x6666ff, 10)
+  // Setup lighting for a cleaner look
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.5) // A bit of ambient light
   scene.add(ambientLight)
 
-  const spotlight1 = new THREE.SpotLight(0xff9999, 6.5)
-  spotlight1.position.set(-5, 0, 6)
-  spotlight1.target.position.set(-2, -2.5, 0)
-  spotlight1.penumbra = 0.3
-  spotlight1.angle = Math.PI / 1.7
-  spotlight1.distance = 25.0
-  spotlight1.power = 500
-  scene.add(spotlight1.target)
-  scene.add(spotlight1)
-
-  const spotlight2 = spotlight1.clone()
-  spotlight2.color.set(0x99ff99)
-  spotlight2.position.set(5, 0, 6)
-  spotlight2.target.position.set(2, -2.5, 0)
-  scene.add(spotlight2.target)
-  scene.add(spotlight2)
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 3.5) // Main light source
+  directionalLight.position.set(-10, 10, 10) // From top-left
+  scene.add(directionalLight)
 
   // Add a visible ground mesh for reference
   const groundGeometry = new THREE.BoxGeometry(30, 0.4, 0.2)
