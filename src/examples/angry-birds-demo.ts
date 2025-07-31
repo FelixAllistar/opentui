@@ -149,7 +149,7 @@ async function createLevel(state: GameState): Promise<void> {
   // Create a pyramid of boxes on the right side
   const boxSize = 0.8
   const startX = 6
-  const startY = -6
+  const startY = -8.5
   const rows = 5
 
   for (let row = 0; row < rows; row++) {
@@ -224,15 +224,15 @@ async function createScenery(state: GameState): Promise<void> {
       const blobSize = 0.8 + Math.random() * 0.8;
       const blobGeometry = new THREE.SphereGeometry(blobSize, 8, 6);
       const blob = new THREE.Mesh(blobGeometry, cloudMaterial);
-      
+
       // Make them look less like perfect spheres
-      blob.scale.set(1.5, 1.0, 1.0); 
+      blob.scale.set(1.5, 1.0, 1.0);
 
       if (j > 0) {
         // Position subsequent blobs relative to the first one
         blob.position.set(
-          (Math.random() - 0.5) * 3, 
-          (Math.random() - 0.5) * 1.5, 
+          (Math.random() - 0.5) * 3,
+          (Math.random() - 0.5) * 1.5,
           (Math.random() - 0.5) * 0.5
         );
       }
@@ -277,7 +277,7 @@ async function createScenery(state: GameState): Promise<void> {
     // Position trees on the ground level, to the sides
     const side = i < 2 ? -1 : 1;
     const x = side * (10 + Math.random() * 4);
-    const y = -8 + trunkHeight / 2; // Place base of the trunk on the ground
+    const y = -10.5 + trunkHeight / 2; // Place base of the trunk on the ground
     tree.position.set(x, y, -3);
     tree.scale.set(0.7, 0.7, 0.7);
     scene.add(tree);
@@ -317,7 +317,7 @@ function updatePhysics(state: GameState, deltaTime: number): void {
   // Remove objects that have fallen off screen
   state.objects = state.objects.filter((obj) => {
     const pos = obj.rigidBody.translation()
-    if (pos.y < -15 || Math.abs(pos.x) > 20) {
+    if (pos.y < -17.5 || Math.abs(pos.x) > 20) {
       obj.sprite.destroy()
       state.physicsWorld.removeRigidBody(obj.rigidBody)
       if (obj === state.bird) {
@@ -378,8 +378,8 @@ export async function run(renderer: CliRenderer): Promise<void> {
     WORLD_HEIGHT / 2, WORLD_HEIGHT / -2,
     0.1, 1000
   )
-  camera.position.set(0, 0, 5)
-  camera.lookAt(0, 0, 0)
+  camera.position.set(0, -0.5, 5)
+  camera.lookAt(0, -0.5, 0)
   scene.add(camera)
 
   engine.setActiveCamera(camera)
@@ -396,16 +396,16 @@ export async function run(renderer: CliRenderer): Promise<void> {
   // Create ground
   const groundColliderDesc = RAPIER.ColliderDesc.cuboid(15.0, 0.5)
   const ground = world.createCollider(groundColliderDesc)
-  ground.setTranslation({ x: 0.0, y: -8.0 })
+  ground.setTranslation({ x: 0.0, y: -10.5 })
 
   // Create walls
   const leftWallDesc = RAPIER.ColliderDesc.cuboid(0.5, 15.0)
   const leftWall = world.createCollider(leftWallDesc)
-  leftWall.setTranslation({ x: -15.0, y: 0.0 })
+  leftWall.setTranslation({ x: -15.0, y: -2.5 })
 
   const rightWallDesc = RAPIER.ColliderDesc.cuboid(0.5, 15.0)
   const rightWall = world.createCollider(rightWallDesc)
-  rightWall.setTranslation({ x: 15.0, y: 0.0 })
+  rightWall.setTranslation({ x: 15.0, y: -2.5 })
 
   // Create sprite resources using actual image assets
   const birdResource = await resourceManager.createResource({
@@ -435,7 +435,7 @@ export async function run(renderer: CliRenderer): Promise<void> {
     scale: 1.0
   }
 
-  
+
 
 
   // Setup lighting for a cleaner look
@@ -454,7 +454,7 @@ export async function run(renderer: CliRenderer): Promise<void> {
     opacity: 0.8,
   })
   const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial)
-  groundMesh.position.set(0, -8, -0.5)
+  groundMesh.position.set(0, -10.5, -0.5)
   scene.add(groundMesh)
 
   // Create UI elements
@@ -485,7 +485,7 @@ export async function run(renderer: CliRenderer): Promise<void> {
   const state: GameState = {
     engine, scene, camera, resourceManager, spriteAnimator,
     physicsWorld: world, ground, leftWall, rightWall, objects: [],
-    bird: null, birdStartPosition: new THREE.Vector3(-8, -3, 0),
+    bird: null, birdStartPosition: new THREE.Vector3(-8, -5.5, 0),
     isDragging: false, dragOffset: new THREE.Vector2(),
     launchDirection: new THREE.Vector2(),
     movingClouds: [],
@@ -506,20 +506,20 @@ export async function run(renderer: CliRenderer): Promise<void> {
     depthWrite: false,
   })
   const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial)
-  backgroundMesh.position.set(0, 0, -10) // Behind everything
+  backgroundMesh.position.set(0, -1, -9) // Behind everything
   scene.add(backgroundMesh)
   state.backgroundMesh = backgroundMesh
 
-  
-  
+
+
   // Scale background to cover the screen
   const scaleBackground = (width: number, height: number) => {
     const worldWidth = state.camera.right - state.camera.left
     const worldHeight = state.camera.top - state.camera.bottom
-    
+
     state.backgroundMesh!.scale.set(worldWidth, worldHeight, 1)
   }
-  
+
   // Set initial background scale
   scaleBackground(initialTermWidth, initialTermHeight)
 
@@ -609,7 +609,7 @@ export async function run(renderer: CliRenderer): Promise<void> {
       cloud.mesh.position.x += cloud.velocity.x * deltaTime;
 
       // When a cloud goes off-screen, reset its properties for variety
-      if (cloud.mesh.position.x > worldWidth / 2 + 5) { 
+      if (cloud.mesh.position.x > worldWidth / 2 + 5) {
         cloud.mesh.position.x = -worldWidth / 2 - 5;
 
         // Respawn with new random properties
