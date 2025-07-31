@@ -45,8 +45,6 @@ interface GameState {
   spriteAnimator: SpriteAnimator
   physicsWorld: RAPIER.World
   ground: RAPIER.Collider
-  leftWall: RAPIER.Collider
-  rightWall: RAPIER.Collider
   objects: PhysicsObject[]
 
   // Bird launching
@@ -108,7 +106,7 @@ async function createPhysicsObject(
   const rigidBody = state.physicsWorld.createRigidBody(rigidBodyDesc)
 
   const colliderDesc = type === 'bird'
-    ? RAPIER.ColliderDesc.ball(Math.min(width, height) * 0.4).setDensity(3.0)
+    ? RAPIER.ColliderDesc.ball(Math.min(width, height) * 0.4).setDensity(5.0)
     : RAPIER.ColliderDesc.cuboid(width * 0.4, height * 0.4)
 
   colliderDesc.setRestitution(0.3).setFriction(0.8)
@@ -403,9 +401,7 @@ export async function run(renderer: CliRenderer): Promise<void> {
   const leftWall = world.createCollider(leftWallDesc)
   leftWall.setTranslation({ x: -15.0, y: -2.5 })
 
-  const rightWallDesc = RAPIER.ColliderDesc.cuboid(0.5, 15.0)
-  const rightWall = world.createCollider(rightWallDesc)
-  rightWall.setTranslation({ x: 15.0, y: -2.5 })
+
 
   // Create sprite resources using actual image assets
   const birdResource = await resourceManager.createResource({
@@ -484,8 +480,8 @@ export async function run(renderer: CliRenderer): Promise<void> {
 
   const state: GameState = {
     engine, scene, camera, resourceManager, spriteAnimator,
-    physicsWorld: world, ground, leftWall, rightWall, objects: [],
-    bird: null, birdStartPosition: new THREE.Vector3(-8, -5.5, 0),
+    physicsWorld: world, ground, leftWall, objects: [],
+    bird: null, birdStartPosition: new THREE.Vector3(-8, -8.5, 0),
     isDragging: false, dragOffset: new THREE.Vector2(),
     launchDirection: new THREE.Vector2(),
     movingClouds: [],
@@ -692,7 +688,6 @@ export function destroy(renderer: CliRenderer): void {
   renderer.removeListener("resize", gameState.resizeHandler)
 
   for (const obj of gameState.objects) {
-    obj.sprite.destroy()
     gameState.physicsWorld.removeRigidBody(obj.rigidBody)
   }
 
