@@ -11,6 +11,7 @@ import {
 } from "../3d/animation/SpriteAnimator"
 import { SpriteResourceManager, type ResourceConfig } from "../3d/SpriteResourceManager"
 import { RapierPhysicsWorld } from "../3d/physics/RapierPhysicsAdapter"
+import { TextureUtils } from "../3d/TextureUtils"
 import RAPIER from "@dimforge/rapier2d-simd-compat"
 import { MeshLambertNodeMaterial } from "three/webgpu"
 
@@ -18,6 +19,9 @@ import { MeshLambertNodeMaterial } from "three/webgpu"
 import cratePath from "./assets/crate.png" with { type: "image/png" }
 // @ts-ignore
 import birdPath from "./assets/heart.png" with { type: "image/png" }
+
+// @ts-ignore
+import backgroundPath from "./assets/forrest_background.png" with { type: "image/png" }
 
 const WORLD_HEIGHT = 20.0
 const GRAVITY = { x: 0.0, y: -9.81 }
@@ -414,6 +418,11 @@ export async function run(renderer: CliRenderer): Promise<void> {
     sheetNumFrames: 1
   })
 
+  const backgroundResource = await resourceManager.createResource({
+    imagePath: backgroundPath,
+    sheetNumFrames: 1
+  })
+
   const birdDef: SpriteDefinition = {
     initialAnimation: "idle",
     animations: { idle: { resource: birdResource, frameDuration: 1000 } },
@@ -426,6 +435,9 @@ export async function run(renderer: CliRenderer): Promise<void> {
     scale: 1.0
   }
 
+  
+
+
   // Setup lighting for a cleaner look
   const ambientLight = new THREE.AmbientLight(0xffffff, 1.5) // A bit of ambient light
   scene.add(ambientLight)
@@ -437,7 +449,7 @@ export async function run(renderer: CliRenderer): Promise<void> {
   // Add a visible ground mesh for reference
   const groundGeometry = new THREE.BoxGeometry(30, 0.4, 0.2)
   const groundMaterial = new THREE.MeshPhongMaterial({
-    color: 0x666666,
+    color: 0x228B22, // ForestGreen
     transparent: true,
     opacity: 0.8,
   })
@@ -479,10 +491,37 @@ export async function run(renderer: CliRenderer): Promise<void> {
     movingClouds: [],
     birdResource, boxResource, birdDef, boxDef,
     parentContainer, titleText, instructionsText, statusText, debugText,
+    backgroundMesh: THREE.Mesh | null,
     frameCallback: async () => { }, keyHandler: () => { },
     mouseHandler: () => { }, resizeHandler: () => { },
     isInitialized: true
   }
+
+  // Setup lighting for a cleaner look
+  // Create background mesh
+  const backgroundGeometry = new THREE.PlaneGeometry(1, 1) // Will be scaled later
+  const backgroundMaterial = new THREE.MeshBasicMaterial({
+    map: backgroundResource.texture,
+    transparent: true,
+    depthWrite: false,
+  })
+  const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial)
+  backgroundMesh.position.set(0, 0, -10) // Behind everything
+  scene.add(backgroundMesh)
+  state.backgroundMesh = backgroundMesh
+
+  
+  
+  // Scale background to cover the screen
+  const scaleBackground = (width: number, height: number) => {
+    const worldWidth = state.camera.right - state.camera.left
+    const worldHeight = state.camera.top - state.camera.bottom
+    
+    state.backgroundMesh!.scale.set(worldWidth, worldHeight, 1)
+  }
+  
+  // Set initial background scale
+  scaleBackground(initialTermWidth, initialTermHeight)
 
   // Mouse event handling
   state.mouseHandler = (event: MouseEvent) => {
@@ -605,12 +644,10 @@ export async function run(renderer: CliRenderer): Promise<void> {
   // Resize handler
   state.resizeHandler = (newWidth: number, newHeight: number) => {
     frameBuffer.resize(newWidth, newHeight)
-
-    const newWorldWidth = WORLD_HEIGHT * state.engine.aspectRatio
-    state.camera.left = newWorldWidth / -2
-    state.camera.right = newWorldWidth / 2
-    state.camera.updateProjectionMatrix()
+    scaleBackground(newWidth, newHeight)
   }
+
+  state.resizeHandler(initialTermWidth, initialTermHeight)
 
   // Register event handlers
   renderer.setFrameCallback(state.frameCallback)

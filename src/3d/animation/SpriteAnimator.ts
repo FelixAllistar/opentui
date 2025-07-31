@@ -563,7 +563,6 @@ export class SpriteAnimator {
       }
 
       const instanceIndex = managerInfo.instanceManager.acquireInstanceSlot()
-
       const resolvedState: ResolvedAnimationState = {
         imagePath: resource.sheetProperties.imagePath,
         sheetTilesetWidth: resource.sheetProperties.sheetTilesetWidth,
